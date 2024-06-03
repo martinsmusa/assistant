@@ -1,0 +1,8 @@
+{
+  "name": "assistant",
+  "version": "1.0.0",
+  "description": "An AI assistant for interacting with documentation and the team",
+  "keywords": [],
+  "author": "Martins Musa",
+  "license": "ISC"
+}
