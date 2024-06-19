@@ -4,7 +4,7 @@ services:
   server:
     build:
       context: ./server
-      dockerfile: Dockerfile-dev
+      dockerfile: Dockerfile
     volumes:
       - ./server:/usr/src/app:cached
       - /usr/src/app/node_modules
@@ -12,17 +12,16 @@ services:
       - '3001:3000'
     depends_on:
       - db
-    command: pnpm run start:dev
 
   web:
     build:
       context: ./web
-      dockerfile: Dockerfile-dev
+      dockerfile: Dockerfile
     volumes:
       - ./web:/usr/src/app:cached
       - /usr/src/app/node_modules
     ports:
-      - '3000:3000'
+      - '3002:3000'
     depends_on:
       - server
 
