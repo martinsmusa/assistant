@@ -50,3 +50,10 @@ The docker-compose.yml file defines three services:
 - server: The NestJS backend application.
 - web: The Next.js frontend application.
 - db: The PostgreSQL database.
+
+#Server
+
+### Make sure the script for generating certificates has execute permission
+```bash
+chmod +x ./proxy/generate_certs.sh
+```

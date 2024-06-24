@@ -9,7 +9,7 @@ services:
       - ./server:/usr/src/app:cached
       - /usr/src/app/node_modules
     ports:
-      - '3001:3000'
+      - '3001:3001'
     depends_on:
       - db
 
@@ -35,6 +35,19 @@ services:
       POSTGRES_DB: postgres
     volumes:
       - db_data:/var/lib/postgresql/data
+
+  nginx:
+    build:
+      context: ./proxy
+      dockerfile: Dockerfile
+    volumes:
+      - ./proxy/cert:/etc/nginx/certificates
+    ports:
+      - '80:80'
+      - '443:443'
+    depends_on:
+      - server
+      - web
 
 volumes:
   db_data:

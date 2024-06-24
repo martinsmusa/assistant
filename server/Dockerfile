@@ -24,7 +24,7 @@ RUN adduser -D nodeuser && chown -R nodeuser /usr/src/app
 USER nodeuser
 
 # Expose the application port
-EXPOSE 3000
+EXPOSE 3001
 
 # Command to run the application in production mode
 CMD ["pnpm", "run", "start:prod"]
