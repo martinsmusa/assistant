@@ -2,6 +2,7 @@ version: '3.8'
 
 services:
   server:
+    image: ${SERVER_HOST}
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -9,11 +10,20 @@ services:
       - ./server:/usr/src/app:cached
       - /usr/src/app/node_modules
     ports:
-      - '3001:3001'
+      - "${SERVER_PORT}:${SERVER_PORT}"
     depends_on:
       - db
+    environment:
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      DB_PORT: ${DB_PORT}
+      DB_HOST: ${DB_HOST}
+    networks:
+      - backend-network  # Connect to custom network
 
   web:
+    image: ${WEB_HOST}
     build:
       context: ./web
       dockerfile: Dockerfile
@@ -21,20 +31,28 @@ services:
       - ./web:/usr/src/app:cached
       - /usr/src/app/node_modules
     ports:
-      - '3002:3000'
+      - "${WEB_PORT}:3000"
     depends_on:
       - server
+    networks:
+      - backend-network  # Connect to custom network
 
   db:
-    image: postgres:15-alpine
+    image: ${DB_HOST}
+    build:
+      context: ./db
+      dockerfile: Dockerfile
     ports:
-      - '5432:5432'
+      - "${DB_PORT}:${DB_PORT}"
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_HOST_AUTH_METHOD: trust  # Allow all connections without a password for development
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/DBql/data
+    networks:
+      - backend-network  # Connect to custom network
 
   nginx:
     build:
@@ -43,11 +61,17 @@ services:
     volumes:
       - ./proxy/cert:/etc/nginx/certificates
     ports:
-      - '80:80'
-      - '443:443'
+      - "${NGINX_HTTP_PORT}:${NGINX_HTTP_PORT}"
+      - "${NGINX_HTTPS_PORT}:${NGINX_HTTPS_PORT}"
     depends_on:
       - server
       - web
+    networks:
+      - backend-network  # Connect to custom network
+
+networks:
+  backend-network:  # Define custom network
+    driver: bridge
 
 volumes:
   db_data:

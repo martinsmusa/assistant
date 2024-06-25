@@ -4,10 +4,24 @@
 
 type User {
   id: Int!
-  username: String!
-  displayName: String
+  email: String!
+  password: String!
+  created_at: String!
+  updated_at: String
 }
 
 type Query {
-  getUserById(id: Int!): User
+  user(id: String!): User!
+  users(email: String): [User!]!
+}
+
+type Mutation {
+  createUser(data: UserInput!): User!
+  removeUser(id: String!): Boolean!
+  updateUser(id: String!, data: UserInput!): User!
+}
+
+input UserInput {
+  email: String!
+  password: String!
 }
