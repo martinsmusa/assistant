@@ -29,7 +29,7 @@ import { APP_PIPE } from '@nestjs/core';
           password: config.get<string>('DB_PASSWORD'),
           synchronize: true,
           dropSchema: process.env.NODE_ENV === 'test',
-          entities: [User]
+          entities: []
         } as TypeOrmModuleOptions;
       }
     }),

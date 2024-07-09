@@ -2,7 +2,8 @@ version: '3.8'
 
 services:
   server:
-    image: ${SERVER_HOST}
+    container_name: ${SERVER_HOST}
+    hostname: ${SERVER_HOST}
     build:
       context: ./server
       dockerfile: Dockerfile
@@ -20,10 +21,11 @@ services:
       DB_PORT: ${DB_PORT}
       DB_HOST: ${DB_HOST}
     networks:
-      - backend-network  # Connect to custom network
+      - backend-network
 
   web:
-    image: ${WEB_HOST}
+    container_name: ${WEB_HOST}
+    hostname: ${WEB_HOST}
     build:
       context: ./web
       dockerfile: Dockerfile
@@ -34,11 +36,13 @@ services:
       - "${WEB_PORT}:3000"
     depends_on:
       - server
+      - ollama-webui
     networks:
-      - backend-network  # Connect to custom network
+      - backend-network
 
   db:
-    image: ${DB_HOST}
+    container_name: ${DB_HOST}
+    hostname: ${DB_HOST}
     build:
       context: ./db
       dockerfile: Dockerfile
@@ -48,11 +52,63 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
-      POSTGRES_HOST_AUTH_METHOD: trust  # Allow all connections without a password for development
+      POSTGRES_HOST_AUTH_METHOD: trust
     volumes:
-      - db_data:/var/lib/DBql/data
+      - db_data:/var/lib/postgresql/data
     networks:
-      - backend-network  # Connect to custom network
+      - backend-network
+
+  ollama:
+    container_name: ollama
+    image: ollama/ollama:latest
+    pull_policy: always
+    tty: true
+    restart: unless-stopped
+    ports:
+      - ${OLLAMA_PORT}:11434
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+      - NVIDIA_VISIBLE_DEVICES=all  # Use all available GPUs
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility  # Expose all relevant GPU driver capabilities
+    volumes:
+      - ./ollama/ollama:/root/.ollama
+    networks:
+      - backend-network
+    runtime: 'nvidia'
+    deploy:
+      resources:
+        limits:
+          cpus: '8.0'  # Allows the container to use all available CPUs
+          memory: '20G'  # Allows the container to use all available memory (adjust if necessary)
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+  ollama-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: ${OLLAMA_WEB_UI_HOST}
+    hostname: ${OLLAMA_WEB_UI_HOST}
+    depends_on:
+      - db
+      - ollama
+    ports:
+      - ${OLLAMA_WEB_UI_PORT}:8080
+    environment: # https://docs.openwebui.com/getting-started/env-configuration#default_models
+      - OLLAMA_BASE_URLS=http://host.docker.internal:7869 #comma separated ollama hosts
+      - ENV=dev
+      - WEBUI_NAME=valiantlynx AI
+      - WEBUI_URL=http://localhost:${OLLAMA_WEB_UI_PORT}
+      - WEBUI_SECRET_KEY=t0p-s3cr3t
+      - DATABASE_URL=${DATABASE_URL}
+    volumes:
+      - ./ollama/ollama-webui:/app/backend/data
+    extra_hosts:
+      - host.docker.internal:host-gateway
+    restart: unless-stopped
+    networks:
+      - backend-network
 
   nginx:
     build:
@@ -63,14 +119,20 @@ services:
     ports:
       - "${NGINX_HTTP_PORT}:${NGINX_HTTP_PORT}"
       - "${NGINX_HTTPS_PORT}:${NGINX_HTTPS_PORT}"
+    environment:
+      - SERVER_HOST=${SERVER_HOST}
+      - SERVER_PORT=${SERVER_PORT}
+      - WEB_HOST=${WEB_HOST}
+      - WEB_PORT=${WEB_PORT}
+      - OLLAMA_WEB_UI_HOST=${OLLAMA_WEB_UI_HOST}
+      - OLLAMA_WEB_UI_PORT=${OLLAMA_WEB_UI_PORT}
     depends_on:
-      - server
       - web
     networks:
-      - backend-network  # Connect to custom network
+      - backend-network
 
 networks:
-  backend-network:  # Define custom network
+  backend-network: # Define custom network
     driver: bridge
 
 volumes:
